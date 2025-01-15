@@ -235,7 +235,7 @@ def main():
     
     # Train each model
     # models = ["maxvit","efficientnet"]
-    models = ["efficientnet","maxvit"]
+    models = ["regnet","efficientnet","maxvit"]
 
     
     for model_name in models:
