@@ -16,6 +16,6 @@ class EnsembleModel(torch.nn.Module):
         out, *other_outputs = [model(*inputs) for model in self.models]
         for output in other_outputs:
             out += output
-        return out
+        return out / len(self.models)
 
 
