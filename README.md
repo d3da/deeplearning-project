@@ -14,6 +14,7 @@ https://huggingface.co/finnff/GTSRB_trained
 
 ## Filestructure
 
+```
 .
 ├── data #(run `tar -xzf data.tar.gz` after downloading data.tar.gz)
 ├── data.tar.gz  # (downloadable from huggingface)
@@ -22,4 +23,5 @@ https://huggingface.co/finnff/GTSRB_trained
 ├── models #(retraining models will end up here if running docker compose up)
 ├── requirements.txt
 └── src
+```
 
