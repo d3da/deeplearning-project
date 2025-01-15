@@ -1,10 +1,16 @@
 import torch
+from torchvision import transforms
 
-from train import GTSRBDataset, clear_gpu_memory
+from train import GTSRBDataset, clear_gpu_memory, get_model
 
-def load_model(path):
-    raise NotImplementedError
 
+def load_model(path, model_name, num_classes, device):
+
+    model = get_model(model_name, num_classes)
+    state_dict = torch.load(path, map_location=device)['model_state_dict']
+    model.load_state_dict(state_dict)
+
+    return model.to(device)
 
 
 def iterative_fsgm(inputs, labels, model, loss_fn, step_size, num_steps):
@@ -47,7 +53,6 @@ def evaluate_model(model, dataloader, loss_fn, evaluation_metric):
     return adv_evaluation, normal_evaluation
 
 
-
 def main():
     # Set device and optimize CUDA if available
     if not torch.cuda.is_available():
@@ -66,6 +71,12 @@ def main():
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
+
+    model_path = './data/final_regnet_e10_b128_lr1e-03_20250107_0233.pth'
+    model_name = 'regnet'
+    num_classes = 43
+
+    model = load_model(model_path, model_name, num_classes, device)
     
     # Dataset paths
     data_dir = "/workspace/data/GTSRB/Final_Training/Images/"
@@ -84,11 +95,11 @@ def main():
         persistent_workers=True,
     )
 
-    model_path = './data/model_checkpoint.pt'
-    model = load_model(model_path)
-    model.to(device)
 
     evaluate_model(model, val_loader, torch.nn.CrossEntropyLoss(), accuracy)
     
 
     
+if __name__ == '__main__':
+    main()
+
