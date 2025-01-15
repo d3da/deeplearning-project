@@ -1,0 +1,34 @@
+services:
+  preprocess:
+    build: .
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - ./data:/workspace/data
+      - ./models:/workspace/models
+      - ./src:/workspace/src
+    shm_size: '8gb'
+    command: python /workspace/src/preprocess.py
+
+  trainer:
+    build: .
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - ./data:/workspace/data
+      - ./models:/workspace/models
+      - ./src:/workspace/src
+    shm_size: '8gb'
+    command: python /workspace/src/train.py
+    depends_on:
+      - preprocess
