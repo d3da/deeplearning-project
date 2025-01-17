@@ -1,3 +1,5 @@
+import pandas as pd
+import tqdm
 import torch
 from torchvision import transforms
 
@@ -13,17 +15,25 @@ def load_model(path, model_name, num_classes, device):
     return model.to(device)
 
 
-def iterative_fsgm(inputs, labels, model, loss_fn, step_size, num_steps):
-    adversarial_inputs = inputs
+def iterative_fsgm(inputs, labels, model, loss_fn, evaluation_metric, step_size=1e-2, num_steps=1):
+    adversarial_inputs = inputs.requires_grad_(True)
     for i in range(num_steps):
         prediction = model(adversarial_inputs)
         loss = loss_fn(prediction, labels)
-        gradient = torch.autograd.grad(loss, adversarial_inputs)
+
+        if i == 0:
+            normal_metric = evaluation_metric(prediction, labels)
+
+        gradient = torch.autograd.grad(loss, adversarial_inputs)[0]
         gradient_sign = torch.sign(gradient)
 
         adversarial_inputs = adversarial_inputs + step_size * gradient_sign
 
-    return adversarial_inputs
+    with torch.inference_mode():
+        prediction = model(adversarial_inputs)
+        adversarial_metric = evaluation_metric(prediction, labels)
+
+    return adversarial_inputs, normal_metric, adversarial_metric
 
 
 def accuracy(outputs, labels):
@@ -34,23 +44,17 @@ def accuracy(outputs, labels):
 
     return val_acc
 
-def evaluate_model(model, dataloader, loss_fn, evaluation_metric):
-    # 1. Evaluate accuracy with adversarial
-    for inputs, labels in dataloader:
-        adversarial_inputs = iterative_fsgm(inputs, labels, model, loss_fn)
-        with torch.inference_mode():
-            adv_predictions = model(adversarial_inputs)
-            adv_evaluation = evaluation_metric(adv_predictions, labels)
+def evaluate_model(model, dataloader, loss_fn, evaluation_metric) -> pd.DataFrame:
+    normal_metrics = []
+    adversarial_metrics = []
+    for inputs, labels in tqdm.tqdm(dataloader):
+        adv_inputs, normal_metric, adversarial_metric = iterative_fsgm(inputs, labels, model, loss_fn, evaluation_metric)
+        # adversarial_inputs.append(adv_inputs)
+        normal_metrics.append(normal_metric)
+        adversarial_metrics.append(adversarial_metric)
 
-    # 2. Evaluate accuracy without adversarial
-    for inputs, labels in dataloader:
-        with torch.inference_mode():
-            normal_predictions = model(inputs)
-            normal_evaluation = evaluation_metric(normal_predictions, labels)
-
-    # 3. Create a dataframe or something with results
-    # 4. Save to disk, and possibly some samples
-    return adv_evaluation, normal_evaluation
+    results_df = pd.DataFrame({'normal_accuracy': normal_metrics, 'adversarial_accuracy': adversarial_metrics})
+    return results_df
 
 
 def main():
@@ -72,15 +76,15 @@ def main():
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-    model_path = './data/final_regnet_e10_b128_lr1e-03_20250107_0233.pth'
+    model_path = './models/final_regnet_e10_b128_lr1e-03_20250107_0233.pth'
     model_name = 'regnet'
     num_classes = 43
 
     model = load_model(model_path, model_name, num_classes, device)
     
     # Dataset paths
-    data_dir = "/workspace/data/GTSRB/Final_Training/Images/"
-    val_csv = "/workspace/data/val.csv"
+    data_dir = "./data/GTSRB/Final_Training/Images/"
+    val_csv = "./data/val.csv"
 
     # Create datasets
     val_dataset = GTSRBDataset(data_dir, val_csv, val_transform)
@@ -95,9 +99,10 @@ def main():
         persistent_workers=True,
     )
 
+    results_df = evaluate_model(model, val_loader, torch.nn.CrossEntropyLoss(), accuracy)
+    print(results_df)
 
-    evaluate_model(model, val_loader, torch.nn.CrossEntropyLoss(), accuracy)
-    
+    import pdb; pdb.set_trace()
 
     
 if __name__ == '__main__':
