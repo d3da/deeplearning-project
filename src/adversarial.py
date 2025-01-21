@@ -159,7 +159,7 @@ def main():
 
 
     # CHANGE THIS
-    config = MODEL_CONFIGS['regnet']
+    config = MODEL_CONFIGS['efficientnet']
 
     model_path = config['path']
     model_name = config['name']

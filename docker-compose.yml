@@ -12,5 +12,6 @@ services:
       - ./data:/workspace/data
       - ./models:/workspace/models
       - ./src:/workspace/src
+      - ./samples:/workspace/samples
     shm_size: "8gb"
     command: python /workspace/src/adversarial.py
