@@ -1,9 +1,9 @@
-import pdb
 import pandas as pd
 import tqdm
 import torch
+import os
 import sys
-from torchvision import transforms
+from torchvision import transforms, utils
 
 from train import GTSRBDataset, clear_gpu_memory, get_model
 
@@ -21,7 +21,7 @@ def load_model(path, model_name, num_classes, device):
 
 
 def iterative_fsgm(
-    inputs, labels, model, loss_fn, evaluation_metric, step_size=1e-2, num_steps=1, index_info=None
+    inputs, labels, model, loss_fn, evaluation_metric, step_size=1e-2, num_steps=1, index_info=None, image_save_dir=None, image_save_freq=20
 ):
     device = next(model.parameters()).device
     inputs = inputs.to(device)
@@ -66,7 +66,18 @@ def iterative_fsgm(
         prediction = model(adversarial_inputs)
         adversarial_metric = evaluation_metric(prediction, labels)
 
+    if (image_save_dir is not None) and (input_index % image_save_freq == 0):
+        save_image(input_index, image_save_dir, inputs, adversarial_inputs, initial_pred, prediction, labels)
+
     return adversarial_inputs, normal_metric, adversarial_metric
+
+
+def save_image(input_index, image_save_dir, inputs, adversarial_inputs, initial_pred, adv_pred, labels):
+    image_path = os.path.join(image_save_dir, f'inputs_{input_index}_normal.png')
+    adv_image_path = os.path.join(image_save_dir, f'inputs_{input_index}_adversarial.png')
+
+    utils.save_image(inputs, image_path)
+    utils.save_image(adversarial_inputs, adv_image_path)
 
 
 def accuracy(outputs, labels):
@@ -78,7 +89,7 @@ def accuracy(outputs, labels):
     return val_acc
 
 
-def evaluate_model(model, dataloader, loss_fn, evaluation_metric) -> pd.DataFrame:
+def evaluate_model(model, dataloader, loss_fn, evaluation_metric, image_save_dir=None, image_save_freq=20) -> pd.DataFrame:
     normal_metrics = []
     adversarial_metrics = []
     input_len = len(dataloader)
@@ -92,6 +103,8 @@ def evaluate_model(model, dataloader, loss_fn, evaluation_metric) -> pd.DataFram
             STEP_SIZE,
             NUM_STEPS,
             index_info=(input_index, input_len),
+            image_save_dir=image_save_dir,
+            image_save_freq=image_save_freq,
         )
         # adversarial_inputs.append(adv_inputs)
         normal_metrics.append(normal_metric)
@@ -149,7 +162,11 @@ def main():
         persistent_workers=True,
     )
 
-    results_df = evaluate_model(model, val_loader, torch.nn.CrossEntropyLoss(), accuracy)
+
+    image_save_dir = f'./samples/{model_name}'
+    os.makedirs(image_save_dir, exist_ok=True)
+
+    results_df = evaluate_model(model, val_loader, torch.nn.CrossEntropyLoss(), accuracy, image_save_dir=image_save_dir)
     print(results_df)
     print(f"Normal accuracy: {results_df['normal_accuracy'].mean():.2f}%")
     print(f"Adversarial accuracy: {results_df['adversarial_accuracy'].mean():.2f}%")
