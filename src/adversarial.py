@@ -8,7 +8,7 @@ from torchvision import transforms, utils
 from train import GTSRBDataset, clear_gpu_memory, get_model
 
 STEP_SIZE = 5e-2
-NUM_STEPS = 5
+NUM_STEPS = 10
 
 
 def load_model(path, model_name, num_classes, device):
@@ -139,8 +139,31 @@ def main():
         ]
     )
 
-    model_path = "./models/final_regnet_e10_b128_lr1e-03_20250107_0233.pth"
-    model_name = "regnet"
+    MODEL_CONFIGS = {
+        'regnet': {
+            'path': './models/final_regnet_e10_b128_lr1e-03_20250107_0233.pth',
+            'batch_size': 128,
+            'name': 'regnet'
+        },
+        'maxvit': {
+            'path': './models/final_maxvit_e10_b16_lr1e-03_20250107_0527.pth',
+            'batch_size': 16,
+            'name': 'maxvit'
+        },
+        'efficientnet': {
+            'path': './models/final_efficientnet_e10_b16_lr1e-03_20250107_0335.pth',
+            'batch_size': 16,
+            'name': 'efficientnet'
+        }
+    }
+
+
+    # CHANGE THIS
+    config = MODEL_CONFIGS['regnet']
+
+    model_path = config['path']
+    model_name = config['name']
+    batch_size = config['batch_size']
     num_classes = 43
 
     model = load_model(model_path, model_name, num_classes, device)
@@ -151,7 +174,7 @@ def main():
 
     # Create datasets
     val_dataset = GTSRBDataset(data_dir, val_csv, val_transform)
-    batch_size = 128
+    batch_size = 16
 
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
