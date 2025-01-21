@@ -1,25 +1,47 @@
+import pdb
 import pandas as pd
 import tqdm
 import torch
+import sys
 from torchvision import transforms
 
 from train import GTSRBDataset, clear_gpu_memory, get_model
+
+STEP_SIZE = 5e-2
+NUM_STEPS = 5
 
 
 def load_model(path, model_name, num_classes, device):
 
     model = get_model(model_name, num_classes)
-    state_dict = torch.load(path, map_location=device)['model_state_dict']
+    state_dict = torch.load(path, map_location=device)["model_state_dict"]
     model.load_state_dict(state_dict)
 
     return model.to(device)
 
 
-def iterative_fsgm(inputs, labels, model, loss_fn, evaluation_metric, step_size=1e-2, num_steps=1):
+def iterative_fsgm(
+    inputs, labels, model, loss_fn, evaluation_metric, step_size=1e-2, num_steps=1, index_info=None
+):
+    device = next(model.parameters()).device
+    inputs = inputs.to(device)
+    labels = labels.to(device)
     adversarial_inputs = inputs.requires_grad_(True)
-    for i in range(num_steps):
+
+    # load once to get initial accuracy for prints
+    with torch.inference_mode():
+        initial_pred = model(inputs)
+        initial_acc = evaluation_metric(initial_pred, labels)
+
+    if index_info is not None:
+        input_index, input_len = index_info
+        desc = f"{input_index}/{input_len} FGSM step:"
+
+    pbar = tqdm.tqdm(range(num_steps), desc=desc, dynamic_ncols=True, file=sys.stdout, leave=True)
+    for i in pbar:
         prediction = model(adversarial_inputs)
         loss = loss_fn(prediction, labels)
+        current_acc = evaluation_metric(prediction, labels)
 
         if i == 0:
             normal_metric = evaluation_metric(prediction, labels)
@@ -28,6 +50,17 @@ def iterative_fsgm(inputs, labels, model, loss_fn, evaluation_metric, step_size=
         gradient_sign = torch.sign(gradient)
 
         adversarial_inputs = adversarial_inputs + step_size * gradient_sign
+
+        acc_drop = initial_acc - current_acc
+        # progress bar
+        pbar.set_postfix(
+            {
+                "Loss": f"{loss.item():.3f}",
+                "Curr Acc": f"{current_acc:.1f}%",
+                "Acc Drop": f"{acc_drop:.1f}%",
+                "Step": f"{step_size:.3f}",
+            }
+        )
 
     with torch.inference_mode():
         prediction = model(adversarial_inputs)
@@ -40,20 +73,33 @@ def accuracy(outputs, labels):
     _, predicted = outputs.max(1)
     val_total = labels.size(0)
     val_correct = predicted.eq(labels).sum().item()
-    val_acc = 100.*val_correct/val_total
+    val_acc = 100.0 * val_correct / val_total
 
     return val_acc
+
 
 def evaluate_model(model, dataloader, loss_fn, evaluation_metric) -> pd.DataFrame:
     normal_metrics = []
     adversarial_metrics = []
-    for inputs, labels in tqdm.tqdm(dataloader):
-        adv_inputs, normal_metric, adversarial_metric = iterative_fsgm(inputs, labels, model, loss_fn, evaluation_metric)
+    input_len = len(dataloader)
+    for input_index, (inputs, labels) in enumerate(tqdm.tqdm(dataloader)):
+        adv_inputs, normal_metric, adversarial_metric = iterative_fsgm(
+            inputs,
+            labels,
+            model,
+            loss_fn,
+            evaluation_metric,
+            STEP_SIZE,
+            NUM_STEPS,
+            index_info=(input_index, input_len),
+        )
         # adversarial_inputs.append(adv_inputs)
         normal_metrics.append(normal_metric)
         adversarial_metrics.append(adversarial_metric)
 
-    results_df = pd.DataFrame({'normal_accuracy': normal_metrics, 'adversarial_accuracy': adversarial_metrics})
+    results_df = pd.DataFrame(
+        {"normal_accuracy": normal_metrics, "adversarial_accuracy": adversarial_metrics}
+    )
     return results_df
 
 
@@ -68,27 +114,31 @@ def main():
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.benchmark = True
         print(f"Using GPU: {torch.cuda.get_device_name(device)}")
-        print(f"Available GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+        print(
+            f"Available GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB"
+        )
 
-    val_transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
+    val_transform = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ]
+    )
 
-    model_path = './models/final_regnet_e10_b128_lr1e-03_20250107_0233.pth'
-    model_name = 'regnet'
+    model_path = "./models/final_regnet_e10_b128_lr1e-03_20250107_0233.pth"
+    model_name = "regnet"
     num_classes = 43
 
     model = load_model(model_path, model_name, num_classes, device)
-    
+
     # Dataset paths
     data_dir = "./data/GTSRB/Final_Training/Images/"
     val_csv = "./data/val.csv"
 
     # Create datasets
     val_dataset = GTSRBDataset(data_dir, val_csv, val_transform)
-    batch_size = 64
+    batch_size = 128
 
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
@@ -101,10 +151,11 @@ def main():
 
     results_df = evaluate_model(model, val_loader, torch.nn.CrossEntropyLoss(), accuracy)
     print(results_df)
+    print(f"Normal accuracy: {results_df['normal_accuracy'].mean():.2f}%")
+    print(f"Adversarial accuracy: {results_df['adversarial_accuracy'].mean():.2f}%")
 
-    import pdb; pdb.set_trace()
+    # pdb.set_trace()
 
-    
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
-

@@ -4,6 +4,7 @@ import torch
 def load_model(model_path):
     raise NotImplementedError
 
+
 class EnsembleModel(torch.nn.Module):
 
     def __init__(self, *model_paths):
@@ -17,5 +18,3 @@ class EnsembleModel(torch.nn.Module):
         for output in other_outputs:
             out += output
         return out / len(self.models)
-
-
