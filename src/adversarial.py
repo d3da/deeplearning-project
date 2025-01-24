@@ -50,6 +50,7 @@ def iterative_fsgm(
         gradient_sign = torch.sign(gradient)
 
         adversarial_inputs = adversarial_inputs + step_size * gradient_sign
+        adversarial_inputs.clamp(0, 1)
 
         acc_drop = initial_acc - current_acc
         # progress bar
