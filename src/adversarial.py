@@ -3,13 +3,60 @@ import tqdm
 import torch
 import os
 import sys
+import numpy as np
+import matplotlib.pyplot as plt
 from torchvision import transforms, utils
 
-from train import GTSRBDataset, clear_gpu_memory, get_model
+from train import GTSRBDataset, get_model
 
 STEP_SIZE = 5e-2
 NUM_STEPS = 10
 
+gtsrb_label_map = {
+    0: '20_speed',
+    1: '30_speed',
+    2: '50_speed',
+    3: '60_speed',
+    4: '70_speed',
+    5: '80_speed',
+    6: '80_lifted',
+    7: '100_speed',
+    8: '120_speed',
+    9: 'no_overtaking_general',
+    10: 'no_overtaking_trucks',
+    11: 'right_of_way_crossing',
+    12: 'right_of_way_general',
+    13: 'give_way',
+    14: 'stop',
+    15: 'no_way_general',
+    16: 'no_way_trucks',
+    17: 'no_way_one_way',
+    18: 'attention_general',
+    19: 'attention_left_turn',
+    20: 'attention_right_turn',
+    21: 'attention_curvy',
+    22: 'attention_bumpers',
+    23: 'attention_slippery',
+    24: 'attention_bottleneck',
+    25: 'attention_construction',
+    26: 'attention_traffic_light',
+    27: 'attention_pedestrian',
+    28: 'attention_children',
+    29: 'attention_bikes',
+    30: 'attention_snowflake',
+    31: 'attention_deer',
+    32: 'lifted_general',
+    33: 'turn_right',
+    34: 'turn_left',
+    35: 'turn_straight',
+    36: 'turn_straight_right',
+    37: 'turn_straight_left',
+    38: 'turn_right_down',
+    39: 'turn_left_down',
+    40: 'turn_circle',
+    41: 'lifted_no_overtaking_general',
+    42: 'lifted_no_overtaking_trucks'
+}
 
 def load_model(path, model_name, num_classes, device):
 
@@ -68,7 +115,10 @@ def iterative_fsgm(
         adversarial_metric = evaluation_metric(prediction, labels)
 
     if (image_save_dir is not None) and (input_index % image_save_freq == 0):
-        save_image(input_index, image_save_dir, inputs, adversarial_inputs, initial_pred, prediction, labels)
+        _, predicted_labels = initial_pred.max(1)
+        _, adv_predicted_labels = prediction.max(1)
+        save_image(input_index, image_save_dir, inputs, adversarial_inputs, predicted_labels, adv_predicted_labels, labels)
+        save_image_plt(input_index, image_save_dir, inputs, adversarial_inputs, predicted_labels, adv_predicted_labels, labels)
 
     return adversarial_inputs, normal_metric, adversarial_metric
 
@@ -80,6 +130,33 @@ def save_image(input_index, image_save_dir, inputs, adversarial_inputs, initial_
     utils.save_image(inputs, image_path)
     utils.save_image(adversarial_inputs, adv_image_path)
 
+
+def save_image_plt(input_index, image_save_dir, inputs, adversarial_inputs, initial_pred, adv_pred, labels, max_images=5):
+    inputs = inputs[:max_images]
+    adversarial_inputs = adversarial_inputs[:max_images]
+    initial_pred = initial_pred[:max_images].detach().cpu().numpy()
+    adv_pred = adv_pred[:max_images].detach().cpu().numpy()
+    labels = labels[:max_images].detach().cpu().numpy()
+    inputs = inputs.detach().cpu().numpy().transpose(0, 2, 3, 1)
+    adversarial_inputs = adversarial_inputs.detach().cpu().numpy().transpose(0, 2, 3, 1)
+
+    fig, axes = plt.subplots(2, len(inputs), figsize=(15, 6))
+    for ax in axes.flat:
+        ax.set(xticks=[], yticks=[])
+
+    for i in range(max(len(inputs), max_images)):
+        axes[0, i].imshow(np.clip(inputs[i], 0, 1))
+        axes[0, i].set_title(f'True label: {gtsrb_label_map[labels[i]]}\n'
+                             f'Normal pred: {gtsrb_label_map[initial_pred[i]]}')
+
+        axes[1, i].imshow(np.clip(adversarial_inputs[i], 0, 1))
+        axes[1, i].set_title(f'Adv pred: {gtsrb_label_map[adv_pred[i]]}')
+
+    # Adjust layout and save the figure
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    grid_image_path = os.path.join(image_save_dir, f'inputs_{input_index}_grid.png')
+    plt.savefig(grid_image_path)
+    plt.close(fig)
 
 def accuracy(outputs, labels):
     _, predicted = outputs.max(1)
