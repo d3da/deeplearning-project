@@ -9,7 +9,7 @@ from torchvision import transforms, utils
 
 from train import GTSRBDataset, get_model
 
-STEP_SIZE = 5e-2
+STEP_SIZE = 9e-3
 NUM_STEPS = 10
 
 gtsrb_label_map = {
@@ -328,6 +328,7 @@ def main():
                 os.makedirs(image_save_dir, exist_ok=True)
 
                 # Evaluate model
+                #
                 results_df = evaluate_model(
                     model,
                     val_loader,
