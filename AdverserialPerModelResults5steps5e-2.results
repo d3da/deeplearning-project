@@ -1,0 +1,64 @@
+# Regnet 5 Steps @ 0.05
+
+490/491 FGSM step:: 100%|██████████| 5/5 [00:00<00:00,  7.76it/s, Loss=9.413, Curr Acc=0.0%, Acc Drop=100.0%, Step=0.050]
+     normal_accuracy  adversarial_accuracy
+0             100.00                 12.50
+1             100.00                 18.75
+2             100.00                 18.75
+3             100.00                 12.50
+4             100.00                 18.75
+..               ...                   ...
+486           100.00                 18.75
+487           100.00                 31.25
+488           100.00                 25.00
+489            93.75                  6.25
+490           100.00                  0.00
+
+[491 rows x 2 columns]
+Normal accuracy: 99.03%
+Adversarial accuracy: 14.94%
+
+
+
+
+# MaxVit 5 Steps @ 0.05
+
+490/491 FGSM step:: 100%|██████████| 5/5 [00:00<00:00,  5.80it/s, Loss=14.123, Curr Acc=0.0%, Acc Drop=50.0%, Step=0.050]
+     normal_accuracy  adversarial_accuracy
+0              87.50                 31.25
+1              93.75                 31.25
+2             100.00                 31.25
+3              87.50                  6.25
+4             100.00                 25.00
+..               ...                   ...
+486            81.25                  6.25
+487            87.50                 18.75
+488           100.00                 18.75
+489            87.50                 18.75
+490            50.00                  0.00
+
+[491 rows x 2 columns]
+Normal accuracy: 92.97%
+Adversarial accuracy: 24.19%
+
+
+
+# EfficientNet 5 Steps @ 0.05
+
+490/491 FGSM step:: 100%|██████████| 5/5 [00:01<00:00,  3.85it/s, Loss=15.692, Curr Acc=0.0%, Acc Drop=100.0%, Step=0.050]
+     normal_accuracy  adversarial_accuracy00:01<00:00,  5.36it/s, Loss=15.692, Curr Acc=0.0%, Acc Drop=100.0%, Step=0.050]
+0              100.0                  6.25
+1              100.0                 12.50
+2              100.0                 18.75
+3              100.0                 12.50
+4              100.0                 18.75
+..               ...                   ...
+486            100.0                  0.00
+487            100.0                  6.25
+488            100.0                  0.00
+489            100.0                  0.00
+490            100.0                  0.00
+
+[491 rows x 2 columns]
+Normal accuracy: 98.94%
+Adversarial accuracy: 6.85%
