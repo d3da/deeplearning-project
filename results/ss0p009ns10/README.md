@@ -30,8 +30,10 @@
 
 --- 
 
+# Defence strategy:
 
 
+```python
 class EnsembleModel(nn.Module):
     def __init__(self, models):
         super().__init__()
@@ -62,5 +64,9 @@ class DefenseTransform(nn.Module):
         # Clip values to maintain valid range
         x = torch.clamp(x, -2.5, 2.5)  # Adjusted for normalized inputs
         return x
+```
+
+this is argubly flawed i realize now as we clamp the model before we normalize it later in val_transform. 
+
 
 
