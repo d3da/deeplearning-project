@@ -26,10 +26,10 @@ class EnsembleModel(nn.Module):
         return torch.mean(torch.stack(logits), dim=0)
 
 class DefenseTransform(nn.Module):
-    def __init__(self, kernel_size=3, noise_std=0.1):
+    def __init__(self, kernel_size=7, noise_std=0.25):
         super().__init__()
         self.noise_std = noise_std
-        self.gaussian_blur = transforms.GaussianBlur(kernel_size, sigma=(0.1, 2.0))
+        self.gaussian_blur = transforms.GaussianBlur(kernel_size, sigma=2.5)
         
     def forward(self, x):
         # adding in gaussian noise
