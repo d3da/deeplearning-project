@@ -251,9 +251,9 @@ def main():
     val_dataset = GTSRBDataset(data_dir, val_csv, val_transform)
 
     # Initial batch sizes
-    batch_sizes = {"regnet": 128, "maxvit": 64, "efficientnet": 64}
-    val_batch_size_hi = 128
-    val_batch_size_lo = 32
+    batch_sizes = {"regnet": 1024, "maxvit": 128, "efficientnet": 128}
+    val_batch_size_hi = 512
+    val_batch_size_lo = 128
 
     # Training parameters
     num_classes = 43
@@ -261,8 +261,8 @@ def main():
     learning_rate = 0.001
 
     # Train each model
-    # models = ["maxvit","efficientnet"]
-    models = ["regnet", "efficientnet", "maxvit"]
+    models = ["maxvit", "efficientnet"]
+    # models = ["regnet", "efficientnet", "maxvit"]
 
     for model_name in models:
         print(f"\n{'-'*40}")
