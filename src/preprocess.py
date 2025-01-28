@@ -65,7 +65,7 @@ def create_test_csv(source_test_csv, output_test_csv):
     df["label"] = df["ClassId"]
     df = df[["path", "label"]]
 
-    df.to_csv(output_test_csv)
+    df.to_csv(output_test_csv, index=False)
 
     print(f"Created test dataset with {len(df)} images")
     print(f"Number of classes: {len(df['label'].unique())}")
