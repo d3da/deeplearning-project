@@ -57,14 +57,34 @@ def create_dataset_csv(root_dir, output_train_csv, output_val_csv):
     print(f"Number of classes: {len(full_df['label'].unique())}")
 
 
+def create_test_csv(source_test_csv, output_test_csv):
+    df = pd.read_csv(source_test_csv, sep=";")
+    print(df)
+
+    df["path"] = df["Filename"]
+    df["label"] = df["ClassId"]
+    df = df[["path", "label"]]
+
+    df.to_csv(output_test_csv)
+
+    print(f"Created test dataset with {len(df)} images")
+    print(f"Number of classes: {len(df['label'].unique())}")
+
+
 def main():
     # Paths
     root_dir = "data/GTSRB/Final_Training/Images"
     output_train_csv = "data/train.csv"
     output_val_csv = "data/val.csv"
 
+    source_test_csv = "data/GT-final_test.csv"
+    output_test_csv = "data/test.csv"
+
     # Create dataset CSV files
-    create_dataset_csv(root_dir, output_train_csv, output_val_csv)
+    # create_dataset_csv(root_dir, output_train_csv, output_val_csv)
+
+    # Create test CSV files
+    create_test_csv(source_test_csv, output_test_csv)
 
 
 if __name__ == "__main__":
