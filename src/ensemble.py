@@ -20,10 +20,8 @@ class EnsembleModel(nn.Module):
         super().__init__()
         self.models = nn.ModuleList(models)
         # returns <10% after 1 step without defense
-        self.defense = DefenseTransform(kernel_size=3, noise_std=0.1)
 
     def forward(self, x):
-        x = self.defense(x)
         logits = [model(x) for model in self.models]
         return torch.mean(torch.stack(logits), dim=0)
 
