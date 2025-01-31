@@ -1,11 +1,16 @@
+
+
+Test and Validation Set Images for each model (both with and without Defence Transform) can be found in Image Samples [https://github.com/d3da/deeplearning-project/tree/main/results](https://github.com/d3da/deeplearning-project/tree/main/results) 
+
+
+GTSRB Fine-Tuned Models (and Training Data) can be found on [https://huggingface.co/finnff/GTSRB_trained/tree/main](https://huggingface.co/finnff/GTSRB_trained/tree/main)
+
 ![image](https://github.com/user-attachments/assets/e59af0fc-05b9-48c7-90f1-8a9d28a763b9)
-Labels
 
 
 UDL Project : GTSRB - German Traffic Sign Recognition Benchmark Adverserial Model
 
-Models and Training Data can be downloaded from:
-https://huggingface.co/finnff/GTSRB_trained
+Our Ensemble Models Requires a large (16+ GB) amount of VRAM to work with our given batchsizes (and may not even run at all on very low amounts of VRAM). The code shown here has been ran on RTX 3090 and 4090s nodes from [https://cloud.vast.ai/](https://cloud.vast.ai/)
 
 
 * final_efficientnet_e10_b16_lr1e-03_20250107_0335.pth 637 MB
