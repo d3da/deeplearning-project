@@ -2,3 +2,5 @@ data
 models
 src/__pycache__
 venv
+samples/workspace/test
+samples/workspace/validation

@@ -13,20 +13,26 @@ def to_numpy_image(input):
     return ((1 + input) / 2).detach().cpu().numpy().clip(0, 1).transpose(1,2,0)
 
 
-def save_image(input, defense, save_path):
-    noisy = input + 0.25 * torch.randn_like(input)
-    blurry = transforms.GaussianBlur(7, 2.5).__call__(noisy)
+def save_image(input, defense, save_path, noise_sigma =0.55, blur_kersize = 3, blur_sigma = 8.0):
 
-    fig, axes = plt.subplots(1, 3, figsize=(9, 4))
+    blurred_only = transforms.GaussianBlur(blur_kersize, blur_sigma).__call__(input)
+    noisy = input + noise_sigma * torch.randn_like(input)
+    noisy_and_blurred = transforms.GaussianBlur(blur_kersize, blur_sigma).__call__(noisy)
+
+    fig, axes = plt.subplots(1, 4, figsize=(16, 5))
     for ax in axes.flat:
         ax.set(xticks=[], yticks=[])
 
     axes[0].set_title('Source image')
     axes[0].imshow(to_numpy_image(input))
-    axes[1].set_title('+ Gaussian noise')
-    axes[1].imshow(to_numpy_image(noisy))
-    axes[2].set_title('+ Gaussian blur')
-    axes[2].imshow(to_numpy_image(blurry))
+    axes[1].set_title(f'Gaussian blur (kernel={blur_kersize}, σ={blur_sigma})')
+    axes[1].imshow(to_numpy_image(blurred_only))
+    
+    axes[2].set_title(f'Gaussian noise (σ={noise_sigma})')
+    axes[2].imshow(to_numpy_image(noisy))
+    
+    axes[3].set_title('Noise then Blurred')
+    axes[3].imshow(to_numpy_image(noisy_and_blurred))
 
     plt.tight_layout()
 
@@ -52,7 +58,7 @@ def main():
 
     for i, (x, y) in tqdm.tqdm(enumerate(val_dataset)):
 
-        if i > 256:
+        if i > 8:
             break
 
         image_save_path = f'./transform_example/defense_transform_visualized_{i}.png'
