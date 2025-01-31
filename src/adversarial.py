@@ -177,6 +177,9 @@ def save_image_plt(
     inputs = inputs.detach().cpu().numpy().transpose(0, 2, 3, 1)
     adversarial_inputs = adversarial_inputs.detach().cpu().numpy().transpose(0, 2, 3, 1)
 
+    inputs = (inputs + 1) / 2
+    adversarial_inputs = (adversarial_inputs + 1) / 2
+
     fig, axes = plt.subplots(2, len(inputs), figsize=(15, 6))
     for ax in axes.flat:
         ax.set(xticks=[], yticks=[])
